@@ -1,0 +1,11 @@
+# Ignore Git files
+.git
+.gitignore
+
+# Ignore node_modules or temporary files
+node_modules
+*.log
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
