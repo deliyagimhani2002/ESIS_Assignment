@@ -2,14 +2,14 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "lanka-mart-app"
-        IMAGE_TAG  = "1.0"
-        DOCKER_USER = "deliya123"
-        CONTAINER_NAME = "lanka-mart-app"
-        PORT = "8081"
-        PEM_KEY_PATH = "/var/lib/jenkins/.ssh/ESIS_key.pem"  // Your PEM key location
-        ANSIBLE_HOSTS = "hosts"                               // Hosts file in repo
-        VM_IP = "57.159.25.36"                                // Azure VM public IP
+        IMAGE_NAME       = "lanka-mart-app"
+        IMAGE_TAG        = "1.0"
+        DOCKER_USER      = "deliya123"
+        CONTAINER_NAME   = "lanka-mart-app"
+        PORT             = "8081"
+        PEM_KEY_PATH     = "/var/lib/jenkins/.ssh/ESIS_key.pem"
+        ANSIBLE_HOSTS    = "hosts"
+        VM_IP            = "57.159.25.36"
     }
 
     stages {
@@ -18,7 +18,7 @@ pipeline {
             steps {
                 sh '''
                     echo "=== Checking Docker Access ==="
-                    which docker || echo "Docker not found in PATH"
+                    which docker || echo "Docker not found"
                     docker --version || echo "Docker not available"
                     docker ps || echo "Cannot access Docker daemon"
                     echo "============================="
@@ -26,13 +26,13 @@ pipeline {
             }
         }
 
-        stage('Clone repository') {
+        stage('Clone Repository') {
             steps {
                 git branch: 'main', url: 'https://github.com/deliyagimhani2002/Lanka_Mart.git'
             }
         }
 
-        stage('Build Docker image') {
+        stage('Build Docker Image') {
             steps {
                 sh """
                     echo "Building Docker image..."
@@ -58,7 +58,7 @@ pipeline {
 
         stage('Deploy via Ansible') {
             steps {
-                withEnv(["ANSIBLE_PRIVATE_KEY_FILE=${PEM_KEY_PATH}"]) {
+                withEnv(["ANSIBLE_PRIVATE_KEY_FILE=${PEM_KEY_PATH}", "ANSIBLE_HOST_KEY_CHECKING=False"]) {
                     sh """
                         echo "Running Ansible playbook..."
                         ansible-playbook -i ${ANSIBLE_HOSTS} deploy.yml
@@ -68,15 +68,11 @@ pipeline {
             }
         }
 
-        // ===== New stage for website verification =====
         stage('Verify Website') {
             steps {
                 script {
-                    def vmIp = "${VM_IP}"
-                    def port = "${PORT}"
-
                     def status = sh(
-                        script: "curl -s -o /dev/null -w '%{http_code}' http://${vmIp}:${port}",
+                        script: "curl -s -o /dev/null -w '%{http_code}' http://${VM_IP}:${PORT}",
                         returnStdout: true
                     ).trim()
 
@@ -89,7 +85,7 @@ pipeline {
             }
         }
 
-        stage('Clean up images') {
+        stage('Clean Up Images') {
             steps {
                 sh 'docker image prune -f'
             }
@@ -105,7 +101,6 @@ pipeline {
         }
     }
 }
-
 
 
 
