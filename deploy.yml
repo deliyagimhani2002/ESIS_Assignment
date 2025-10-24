@@ -33,11 +33,8 @@
         state: present
         update_cache: yes
 
-    - name: Ensure Docker Python module is installed (fix for Ubuntu 24.04)
-      shell: |
-        python3 -m pip install docker --break-system-packages
-      args:
-        warn: false
+    - name: Ensure Docker Python module is installed (Ubuntu 24.04 fix)
+      shell: python3 -m pip install docker --break-system-packages
 
     - name: Pull Docker image from Docker Hub
       docker_image:
