@@ -9,6 +9,7 @@ pipeline {
         PORT = "8081"
         PEM_KEY_PATH = "/var/lib/jenkins/.ssh/ESIS_key.pem"  // Your PEM key location
         ANSIBLE_HOSTS = "hosts"                               // Hosts file in repo
+        VM_IP = "57.159.25.36"                                // Azure VM public IP
     }
 
     stages {
@@ -67,6 +68,27 @@ pipeline {
             }
         }
 
+        // ===== New stage for website verification =====
+        stage('Verify Website') {
+            steps {
+                script {
+                    def vmIp = "${VM_IP}"
+                    def port = "${PORT}"
+
+                    def status = sh(
+                        script: "curl -s -o /dev/null -w '%{http_code}' http://${vmIp}:${port}",
+                        returnStdout: true
+                    ).trim()
+
+                    if (status != "200") {
+                        error("Website verification failed! HTTP status: ${status}")
+                    } else {
+                        echo "Website verification successful! HTTP status: ${status}"
+                    }
+                }
+            }
+        }
+
         stage('Clean up images') {
             steps {
                 sh 'docker image prune -f'
@@ -79,10 +101,11 @@ pipeline {
             echo "CI/CD pipeline completed successfully!"
         }
         failure {
-            echo " Build failed — check logs for details."
+            echo "Build failed — check logs for details."
         }
     }
 }
+
 
 
 
