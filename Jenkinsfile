@@ -5,11 +5,13 @@ pipeline {
     IMAGE_NAME = "lanka-mart-app"
     IMAGE_TAG = "1.0"
     DOCKER_USER = "deliya123"
+    CONTAINER_NAME = "lanka-mart-app"
+    PORT = "8081"
   }
 
   stages {
 
-    // 1️⃣ Check Docker Access
+    // 1️⃣ Check Docker access
     stage('Check Docker Access') {
       steps {
         sh '''
@@ -22,7 +24,7 @@ pipeline {
       }
     }
 
-    // 2️⃣ Clone the repository (explicitly use 'main' branch)
+    // 2️⃣ Clone repository (main branch)
     stage('Clone repository') {
       steps {
         git branch: 'main', url: 'https://github.com/deliyagimhani2002/Lanka_Mart.git'
@@ -41,22 +43,7 @@ pipeline {
       }
     }
 
-    // 4️⃣ Run container test
-    stage('Run container test') {
-      steps {
-        sh '''
-          set -x
-          echo "Running container from built image..."
-          docker run -d -p 8081:80 --name ${IMAGE_NAME} ${IMAGE_NAME}:${IMAGE_TAG}
-          sleep 5
-          echo "Checking if container is running..."
-          docker ps | grep ${IMAGE_NAME} || (echo "Container not running!" && exit 1)
-          echo "Container is up successfully!"
-        '''
-      }
-    }
-
-    // 5️⃣ Push to Docker Hub
+    // 4️⃣ Push image to Docker Hub
     stage('Push to Docker Hub') {
       steps {
         withCredentials([string(credentialsId: 'deliya123', variable: 'DOCKER_PASS')]) {
@@ -64,29 +51,40 @@ pipeline {
             set -x
             echo "Logging in to Docker Hub..."
             echo $DOCKER_PASS | docker login -u ${DOCKER_USER} --password-stdin
-
             echo "Tagging and pushing image..."
             docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
             docker push ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-
             echo "Image pushed successfully!"
           '''
         }
       }
     }
 
-    // 6️⃣ Clean up containers
-    stage('Clean up containers') {
+    // 5️⃣ Deploy new container (without deleting permanently)
+    stage('Deploy Container') {
       steps {
         sh '''
-          echo "Stopping and removing container..."
-          docker stop ${IMAGE_NAME} || true
-          docker rm -f ${IMAGE_NAME} || true
+          set -x
+          echo "Checking if old container exists..."
+          if [ "$(docker ps -aq -f name=${CONTAINER_NAME})" ]; then
+            echo "Stopping old container..."
+            docker stop ${CONTAINER_NAME} || true
+            echo "Removing old container..."
+            docker rm ${CONTAINER_NAME} || true
+          fi
+
+          echo "Running new container on port ${PORT}..."
+          docker run -d -p ${PORT}:80 --name ${CONTAINER_NAME} ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
+
+          echo "Checking if container is running..."
+          docker ps | grep ${CONTAINER_NAME} || (echo "Container failed to start!" && exit 1)
+
+          echo "Deployment completed successfully!"
         '''
       }
     }
 
-    // 7️⃣ Clean up dangling images
+    // 6️⃣ Optional: Clean dangling images
     stage('Clean up images') {
       steps {
         sh '''
@@ -102,10 +100,12 @@ pipeline {
       echo "❌ Build failed — check logs for details."
     }
     success {
-      echo "✅ Build pipeline completed successfully!"
+      echo "✅ CI/CD pipeline completed successfully!"
+      echo "Application deployed at: http://localhost:${PORT}"
     }
   }
 }
+
 
 
  
