@@ -11,7 +11,7 @@ pipeline {
 
   stages {
 
-    // 1️⃣ Check Docker access
+    // Check Docker access on Jenkins
     stage('Check Docker Access') {
       steps {
         sh '''
@@ -24,14 +24,14 @@ pipeline {
       }
     }
 
-    // 2️⃣ Clone repository (main branch)
+    //  Clone repository (main branch)
     stage('Clone repository') {
       steps {
         git branch: 'main', url: 'https://github.com/deliyagimhani2002/Lanka_Mart.git'
       }
     }
 
-    // 3️⃣ Build Docker image
+    //  Build Docker image
     stage('Build Docker image') {
       steps {
         sh '''
@@ -43,7 +43,7 @@ pipeline {
       }
     }
 
-    // 4️⃣ Push image to Docker Hub
+    //  Push image to Docker Hub
     stage('Push to Docker Hub') {
       steps {
         withCredentials([string(credentialsId: 'deliya123', variable: 'DOCKER_PASS')]) {
@@ -60,31 +60,19 @@ pipeline {
       }
     }
 
-    // 5️⃣ Deploy new container (without deleting permanently)
-    stage('Deploy Container') {
+    //  Deploy to Azure VM via Ansible
+    stage('Deploy via Ansible') {
       steps {
-        sh '''
-          set -x
-          echo "Checking if old container exists..."
-          if [ "$(docker ps -aq -f name=${CONTAINER_NAME})" ]; then
-            echo "Stopping old container..."
-            docker stop ${CONTAINER_NAME} || true
-            echo "Removing old container..."
-            docker rm ${CONTAINER_NAME} || true
-          fi
-
-          echo "Running new container on port ${PORT}..."
-          docker run -d -p ${PORT}:80 --name ${CONTAINER_NAME} ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-
-          echo "Checking if container is running..."
-          docker ps | grep ${CONTAINER_NAME} || (echo "Container failed to start!" && exit 1)
-
-          echo "Deployment completed successfully!"
-        '''
+        sshagent(['vm-ssh-credentials']) { // SSH key for Ansible to connect to VM
+          sh '''
+            echo "Running Ansible playbook to deploy application on Azure VM..."
+            ansible-playbook -i hosts deploy.yml
+          '''
+        }
       }
     }
 
-    // 6️⃣ Optional: Clean dangling images
+    //  Clean dangling Docker images
     stage('Clean up images') {
       steps {
         sh '''
@@ -101,11 +89,9 @@ pipeline {
     }
     success {
       echo "✅ CI/CD pipeline completed successfully!"
-      echo "Application deployed at: http://localhost:${PORT}"
+      echo "Application deployed on Azure VM via Ansible."
     }
   }
 }
 
 
-
- 
