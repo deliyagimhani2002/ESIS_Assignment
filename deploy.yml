@@ -21,6 +21,18 @@
         state: started
         enabled: yes
 
+    - name: Add azureuser to docker group
+      user:
+        name: azureuser
+        groups: docker
+        append: yes
+
+    - name: Install pip3
+      apt:
+        name: python3-pip
+        state: present
+        update_cache: yes
+
     - name: Ensure Docker Python module is installed
       pip:
         name: docker
@@ -35,7 +47,6 @@
       docker_container:
         name: "{{ container_name }}"
         state: absent
-        force_kill: yes
 
     - name: Run Docker container
       docker_container:
