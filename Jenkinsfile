@@ -9,7 +9,7 @@ pipeline {
 
   stages {
 
-    // 1️⃣ Check Docker access
+    // 1️⃣ Check Docker Access
     stage('Check Docker Access') {
       steps {
         sh '''
@@ -22,10 +22,10 @@ pipeline {
       }
     }
 
-    // 2️⃣ Clone the repository
+    // 2️⃣ Clone the repository (explicitly use 'main' branch)
     stage('Clone repository') {
       steps {
-        git 'https://github.com/deliyagimhani2002/Lanka_Mart.git'
+        git branch: 'main', url: 'https://github.com/deliyagimhani2002/Lanka_Mart.git'
       }
     }
 
@@ -106,7 +106,6 @@ pipeline {
     }
   }
 }
-
 
 
  
