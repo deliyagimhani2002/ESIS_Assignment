@@ -14,25 +14,29 @@
         name: docker.io
         state: present
         update_cache: yes
+
     - name: Ensure Docker service is running
       systemd:
         name: docker
         state: started
         enabled: yes
-    - name: Add azureuser to docker group
-      user:
-        name: azureuser
-        groups: docker
-        append: yes
+
+    - name: Ensure Docker Python module is installed
+      pip:
+        name: docker
+
     - name: Pull Docker image from Docker Hub
       docker_image:
         name: "{{ docker_user }}/{{ image_name }}"
         tag: "{{ image_tag }}"
         source: pull
+
     - name: Stop existing container if running
       docker_container:
         name: "{{ container_name }}"
         state: absent
+        force_kill: yes
+
     - name: Run Docker container
       docker_container:
         name: "{{ container_name }}"
