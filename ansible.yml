@@ -1,0 +1,30 @@
+---
+- name: Deploy Docker container to Azure App Service
+  hosts: azure
+  connection: local
+  vars:
+    azure_subscription_id: "<YOUR_SUBSCRIPTION_ID>"     # Replace this
+    azure_client_id: "{{ lookup('env','AZURE_CLIENT_ID') }}"
+    azure_secret: "{{ lookup('env','AZURE_CLIENT_SECRET') }}"
+    azure_tenant: "{{ lookup('env','AZURE_TENANT_ID') }}"
+    azure_resource_group: "LankaMartRG"
+    azure_app_service: "lankaMartAppService"
+    docker_user: "deliya123"
+    image_name: "lanka-mart-app"
+    image_tag: "1.0"
+
+  tasks:
+    - name: Login to Azure
+      azure.azcollection.azure_rm_azureadapplication:
+        client_id: "{{ azure_client_id }}"
+        secret: "{{ azure_secret }}"
+        tenant: "{{ azure_tenant }}"
+
+    - name: Deploy Docker container to Azure App Service
+      azure.azcollection.azure_rm_webapp:
+        resource_group: "{{ azure_resource_group }}"
+        name: "{{ azure_app_service }}"
+        state: present
+        container_settings:
+          docker_image_name: "{{ docker_user }}/{{ image_name }}:{{ image_tag }}"
+          docker_registry_url: "https://index.docker.io"
