@@ -46,6 +46,7 @@
       docker_container:
         name: "{{ container_name }}"
         state: absent
+        force_kill: yes          # Ensure container is fully removed
 
     - name: Run Docker container with latest image
       docker_container:
