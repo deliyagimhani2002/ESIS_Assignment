@@ -1,54 +1,55 @@
 # ==========================================================
 # Ansible Playbook: Deploy LankaMart App & Save Logs
-# Description: Deploys Dockerized LankaMart app on Azure VM
-# and saves container logs to a file for monitoring purposes.
+# Optimized for CI/CD via Jenkins on Azure VM
 # ==========================================================
 
 - name: Deploy LankaMart App to Azure VM
   hosts: cloud               # Target group defined in hosts inventory
-  become: yes                # Run tasks with sudo privileges
+  become: yes                # Only needed for tasks requiring sudo privileges
 
   vars:
-    docker_user: "deliya123"                           # Docker Hub username
-    image_name: "lanka-mart-app"                       # Docker image name
-    image_tag: "latest"                                # Docker image tag
-    container_name: "lanka-mart-app"                   # Name for running container
-    port: "8081"                                       # VM port to map container
-    log_file_path: "/home/azureuser/lanka-mart-app_logs.txt"  # Path to save container logs
+    docker_user: "deliya123"                                 # Docker Hub username
+    image_name: "lanka-mart-app"                              # Docker image name
+    image_tag: "latest"                                       # Docker image tag
+    container_name: "lanka-mart-app"                          # Name of the container
+    port: "8081"                                              # Host VM port to map container's port 80
+    log_dir: "/home/azureuser/lanka-mart-logs"               # Directory to store container logs
+    log_file_path: "{{ log_dir }}/lanka-mart-app_logs.txt"   # Full path to the log file
 
   tasks:
 
+    # ================= System-level tasks  =================
     - name: Ensure Docker is installed
       apt:
         name: docker.io
         state: present
         update_cache: yes
-      # Installs Docker engine if not present and updates package index
+      # Installs Docker engine if not present; updates package cache first
 
     - name: Ensure Docker service is running
       systemd:
         name: docker
         state: started
         enabled: yes
-      # Starts Docker daemon and ensures it runs on boot
+      # Starts Docker service and ensures it runs on boot
 
     - name: Add azureuser to docker group
       user:
         name: azureuser
         groups: docker
         append: yes
-      # Adds default Azure user to Docker group to allow running Docker commands without sudo
+      # Allows azureuser to run Docker commands without sudo
 
     - name: Install pip3
       apt:
         name: python3-pip
         state: present
         update_cache: yes
-      # Installs Python package manager required for Ansible Docker modules
+      # Installs Python package manager, required for installing Docker Python module
 
     - name: Ensure Docker Python module is installed
       shell: python3 -m pip install docker --break-system-packages
-      # Installs Docker Python library needed by Ansible's Docker modules
+      # Installs Docker Python library needed by Ansible Docker modules
 
     - name: Remove old unused images
       shell: docker image prune -af
@@ -62,7 +63,7 @@
         source: pull
         force_source: true
         force_tag: true
-      # Always pulls the latest image from Docker Hub, ensuring fresh deployment
+      # Ensures the latest Docker image is always pulled from Docker Hub
 
     - name: Stop existing container if running
       docker_container:
@@ -78,7 +79,7 @@
         state: started
         ports:
           - "{{ port }}:80"
-      # Launches new container and maps container port 80 to VM port 8081
+      # Launches new container and maps container port 80 to VM port defined in variables
 
     - name: Wait for container to start
       wait_for:
@@ -87,22 +88,24 @@
         timeout: 15
       # Waits until the container is ready and accessible on specified port
 
-    # ================= Save Logs =================
+    # ================= Logs & Monitoring  =================
     - name: Ensure logs directory exists
       file:
-        path: "/home/azureuser"
+        path: "{{ log_dir }}"
         state: directory
         mode: '0755'
-      # Makes sure the directory exists for storing container logs
+      become: no
+      # Creates dedicated directory for container logs; runs as azureuser (no sudo)
 
     - name: Save latest container logs to file
       shell: docker logs {{ container_name }} > {{ log_file_path }}
+      become: no
       ignore_errors: yes
-      # Saves the last container logs to a text file for monitoring purposes
+      # Captures latest container logs into a file for monitoring; ignores errors if container logs are empty
 
     - name: Display log file path
       debug:
         msg: "Container logs saved at {{ log_file_path }}"
-      # Outputs the path of saved logs so it is visible in Ansible output
+      # Prints the log file path in Ansible output for reference
 
 
