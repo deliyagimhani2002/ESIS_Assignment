@@ -2,6 +2,7 @@
 // Lanka Mart CI/CD Pipeline - Jenkinsfile
 // Description: Automates Docker build, push, and deployment 
 // using Jenkins, Docker, and Ansible for Azure-hosted VM.
+// Includes basic container monitoring and log retrieval.
 // ==========================================================
 
 pipeline {
@@ -23,12 +24,12 @@ pipeline {
 
         stage('Check Docker Access') {
             steps {
-                //  Validate that Docker is installed and accessible to Jenkins
+                // Verify Docker is installed and accessible to Jenkins
                 sh '''
                     echo "=== Checking Docker Access ==="
-                    which docker || echo "Docker not found"
-                    docker --version || echo "Docker not available"
-                    docker ps || echo "Cannot access Docker daemon"
+                    which docker || echo "Docker not found"         # Check Docker CLI
+                    docker --version || echo "Docker not available" # Check Docker version
+                    docker ps || echo "Cannot access Docker daemon" # Verify Docker daemon access
                     echo "==============================="
                 '''
             }
@@ -36,14 +37,14 @@ pipeline {
 
         stage('Clone Repository') {
             steps {
-                //  Fetch latest application source code from GitHub repository
+                // Fetch the latest source code from GitHub
                 git branch: 'main', url: 'https://github.com/deliyagimhani2002/Lanka_Mart.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                // Build a new Docker image without using cache
+                // Build a fresh Docker image without using cache
                 sh """
                     echo "Building fresh Docker image..."
                     docker build --no-cache -t ${IMAGE_NAME}:${IMAGE_TAG} .
@@ -53,7 +54,7 @@ pipeline {
 
         stage('Push Docker Image to Docker Hub') {
             steps {
-                // Authenticate with Docker Hub and push the image
+                // Authenticate and push Docker image to Docker Hub
                 withCredentials([string(credentialsId: 'deliya123', variable: 'DOCKER_PASS')]) {
                     sh """
                         echo "Logging into Docker Hub..."
@@ -68,10 +69,10 @@ pipeline {
 
         stage('Deploy via Ansible') {
             steps {
-                //  Run Ansible playbook to pull latest Docker image and deploy it on Azure VM
+                // Use Ansible to deploy Docker container on Azure VM
                 withEnv(["ANSIBLE_PRIVATE_KEY_FILE=${PEM_KEY_PATH}", "ANSIBLE_HOST_KEY_CHECKING=False"]) {
                     sh """
-                        echo " Deploying container on Azure VM using Ansible..."
+                        echo "Deploying container on Azure VM using Ansible..."
                         ansible-playbook -i ${ANSIBLE_HOSTS} deploy.yml
                     """
                 }
@@ -81,38 +82,70 @@ pipeline {
         stage('Verify Deployment') {
             steps {
                 script {
-                    //  Verify that the deployed web application is running successfully
+                    // Verify the website is running by checking HTTP status
                     def status = sh(
                         script: "curl -s -o /dev/null -w '%{http_code}' http://${VM_IP}:${PORT}",
                         returnStdout: true
                     ).trim()
 
                     if (status != "200") {
-                        error(" Website verification failed! HTTP status: ${status}")
+                        error("Website verification failed! HTTP status: ${status}")
                     } else {
-                        echo " Website is live! HTTP status: ${status}"
+                        echo "Website is live! HTTP status: ${status}"
                     }
                 }
             }
         }
 
+        // ================= Monitoring & Logging Stages =================
+
+        stage('Container Logging & Monitoring') {
+            steps {
+                //  monitoring: check container status and fetch last log lines
+                sh """
+                    echo "=== Checking container status ==="
+                    docker ps | grep ${CONTAINER_NAME} || echo "Container not running"
+
+                    echo "=== Fetching last 20 log lines ==="
+                    docker logs --tail 20 ${CONTAINER_NAME} || echo "No logs available"
+                """
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                // HTTP health check of deployed website
+                sh """
+                    HTTP_STATUS=\$(curl -s -o /dev/null -w '%{http_code}' http://${VM_IP}:${PORT})
+                    if [ "\$HTTP_STATUS" -eq 200 ]; then
+                        echo " Website is up and running"
+                    else
+                        echo " Website is down, HTTP Status: \$HTTP_STATUS"
+                    fi
+                """
+            }
+        }
+
+        // ===================================================================
+
         stage('Clean Up') {
             steps {
-                //  Remove unused Docker images to free up disk space
+                // Remove unused Docker images to free up disk space
                 sh 'docker image prune -f'
             }
         }
     }
 
     post {
-        //  Post-build notifications
+        // Post-build notifications in Jenkins console
         success {
-            echo " CI/CD pipeline completed successfully!"
+            echo "CI/CD pipeline completed successfully!"
         }
         failure {
-            echo " Build failed — check logs for errors."
+            echo "Build failed — check logs for errors."
         }
     }
 }
+
 
 
