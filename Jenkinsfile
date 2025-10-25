@@ -35,8 +35,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh """
-                    echo "Building Docker image with latest code..."
-                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                    echo "Building Docker image with latest code (no cache)..."
+                    docker build --no-cache -t ${IMAGE_NAME}:${IMAGE_TAG} .
                     echo "Image built successfully!"
                 """
             }
@@ -101,5 +101,6 @@ pipeline {
         }
     }
 }
+
 
 
