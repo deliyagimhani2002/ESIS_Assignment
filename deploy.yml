@@ -1,69 +1,80 @@
-- name: Deploy LankaMart App to Azure VM
-  hosts: cloud
-  become: yes
+# ==========================================================
+# Ansible Playbook: Deploy LankaMart App to Azure VM
+# Description: Automates deployment of Dockerized web app 
+#              to an Azure-hosted Ubuntu server.
+# Tools: Jenkins → Ansible → Docker
+# ==========================================================
+
+- name: Deploy LankaMart App to Azure VM     # Playbook name (visible in Ansible output)
+  hosts: cloud                               # Target host group defined in 'hosts' inventory file
+  become: yes                                # Run all tasks with elevated privileges (sudo)
+
   vars:
-    docker_user: "deliya123"
-    image_name: "lanka-mart-app"
-    image_tag: "latest"
-    container_name: "lanka-mart-app"
-    port: "8081"
+    docker_user: "deliya123"                 # Docker Hub username
+    image_name: "lanka-mart-app"             # Application image name
+    image_tag: "latest"                      # Image tag version
+    container_name: "lanka-mart-app"         # Name of running container
+    port: "8081"                             # Exposed application port on Azure VM
 
   tasks:
+
     - name: Ensure Docker is installed
       apt:
-        name: docker.io
+        name: docker.io                      # Install Docker from Ubuntu repositories
         state: present
-        update_cache: yes
+        update_cache: yes                    # Update package index before installation
 
     - name: Ensure Docker service is running
       systemd:
-        name: docker
+        name: docker                         # Ensure Docker daemon is active and enabled
         state: started
         enabled: yes
 
     - name: Add azureuser to docker group
       user:
-        name: azureuser
+        name: azureuser                      # Add default Azure user to Docker group
         groups: docker
-        append: yes
+        append: yes                          # Prevent overwriting existing groups
 
     - name: Install pip3
       apt:
-        name: python3-pip
+        name: python3-pip                    # Install Python package manager (needed for modules)
         state: present
         update_cache: yes
 
     - name: Ensure Docker Python module is installed
-      shell: python3 -m pip install docker --break-system-packages
+      shell: python3 -m pip install docker --break-system-packages  
+      #  Required for Ansible Docker modules to work properly
 
     - name: Remove old unused images
-      shell: docker image prune -af
-      ignore_errors: yes
+      shell: docker image prune -af          # Clean up unused Docker images to free space
+      ignore_errors: yes                     # Ignore errors if no images exist
 
     - name: Force pull latest Docker image from Docker Hub
       docker_image:
-        name: "{{ docker_user }}/{{ image_name }}"
-        tag: "{{ image_tag }}"
-        source: pull
-        force_source: true
+        name: "{{ docker_user }}/{{ image_name }}"  # Full image path
+        tag: "{{ image_tag }}"                      # Version tag 
+        source: pull                                # Always pull from Docker Hub
+        force_source: true                          # Force fresh pull
         force_tag: true
 
     - name: Stop existing container if running
       docker_container:
-        name: "{{ container_name }}"
+        name: "{{ container_name }}"          # Stop and remove old container instance
         state: absent
-        force_kill: yes
+        force_kill: yes                       # Force stop if container is running
 
     - name: Run new container with latest image
       docker_container:
-        name: "{{ container_name }}"
-        image: "{{ docker_user }}/{{ image_name }}:{{ image_tag }}"
+        name: "{{ container_name }}"          # Start new container
+        image: "{{ docker_user }}/{{ image_name }}:{{ image_tag }}"  
         state: started
         ports:
-          - "{{ port }}:80"
+          - "{{ port }}:80"                   # Map container port 80 to VM port 8081
 
     - name: Wait for container to start
       wait_for:
-        host: 127.0.0.1
-        port: "{{ port }}"
-        timeout: 15
+        host: 127.0.0.1                       # Check localhost
+        port: "{{ port }}"                     # Wait until port 8081 is open
+        timeout: 15                           # Wait up to 15 seconds before failing
+
