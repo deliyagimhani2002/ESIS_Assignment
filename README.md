@@ -29,12 +29,17 @@ The pipeline demonstrates how DevOps principles can automate building, testing, 
 ---
 
 ##  Project Structure
-Lanka_Mart/
-├── Dockerfile # Build instructions for Nginx web app
-├── .dockerignore # Files to exclude from Docker build
-├── Jenkinsfile # Jenkins pipeline for CI/CD
-├── deploy.yml # Ansible playbook for deployment
-├── hosts # Ansible inventory with Azure VM details
-└── (Web Files) # index.html, css/, js/
+
+1. Dockerfile # Build instructions for Nginx web app
+2. .dockerignore # Files to exclude from Docker build
+3. Jenkinsfile # Jenkins pipeline for CI/CD
+4. deploy.yml # Ansible playbook for deployment
+5. hosts # Ansible inventory with Azure VM details
+6. (Web Files) # index.html, css/, js/
+
+##  Accessing the App
+Once deployed successfully, open the browser and visit:
+http://57.159.25.36:8081
+We can see the LankaMart homepage running on the Azure VM.
 
 
