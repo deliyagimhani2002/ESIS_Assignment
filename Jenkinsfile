@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME       = "lanka-mart-app"
-        IMAGE_TAG        = "latest"               // Always use latest tag
+        IMAGE_TAG        = "latest"               
         DOCKER_USER      = "deliya123"
         CONTAINER_NAME   = "lanka-mart-app"
         PORT             = "8081"
@@ -28,29 +28,28 @@ pipeline {
 
         stage('Clone Repository') {
             steps {
-                git branch: 'main', url: 'https://github.com/deliyagimhani2002/Lanka_Mart.git', changelog: true, poll: true
+                git branch: 'main', url: 'https://github.com/deliyagimhani2002/Lanka_Mart.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 sh """
-                    echo "Building Docker image with latest code (no cache)..."
+                    echo "Building fresh Docker image..."
                     docker build --no-cache -t ${IMAGE_NAME}:${IMAGE_TAG} .
-                    echo "Image built successfully!"
                 """
             }
         }
 
-        stage('Push Docker Image') {
+        stage('Push Docker Image to Docker Hub') {
             steps {
                 withCredentials([string(credentialsId: 'deliya123', variable: 'DOCKER_PASS')]) {
                     sh """
-                        echo "Logging in to Docker Hub..."
+                        echo "Logging into Docker Hub..."
                         echo \$DOCKER_PASS | docker login -u ${DOCKER_USER} --password-stdin
                         docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
                         docker push ${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-                        echo "Image pushed successfully!"
+                        echo "✅ Image pushed successfully!"
                     """
                 }
             }
@@ -60,15 +59,14 @@ pipeline {
             steps {
                 withEnv(["ANSIBLE_PRIVATE_KEY_FILE=${PEM_KEY_PATH}", "ANSIBLE_HOST_KEY_CHECKING=False"]) {
                     sh """
-                        echo "Running Ansible playbook to deploy updated container..."
+                        echo "🚀 Deploying container on Azure VM using Ansible..."
                         ansible-playbook -i ${ANSIBLE_HOSTS} deploy.yml
-                        echo "Deployment completed!"
                     """
                 }
             }
         }
 
-        stage('Verify Website') {
+        stage('Verify Deployment') {
             steps {
                 script {
                     def status = sh(
@@ -77,15 +75,15 @@ pipeline {
                     ).trim()
 
                     if (status != "200") {
-                        error("Website verification failed! HTTP status: ${status}")
+                        error("❌ Website verification failed! HTTP status: ${status}")
                     } else {
-                        echo "Website verification successful! HTTP status: ${status}"
+                        echo "✅ Website is live! HTTP status: ${status}"
                     }
                 }
             }
         }
 
-        stage('Clean Up Images') {
+        stage('Clean Up') {
             steps {
                 sh 'docker image prune -f'
             }
@@ -94,10 +92,10 @@ pipeline {
 
     post {
         success {
-            echo "CI/CD pipeline completed successfully!"
+            echo "🎉 CI/CD pipeline completed successfully!"
         }
         failure {
-            echo "Build failed — check logs for details."
+            echo "⚠️ Build failed — check logs for errors."
         }
     }
 }
