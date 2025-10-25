@@ -36,19 +36,25 @@
     - name: Ensure Docker Python module is installed
       shell: python3 -m pip install docker --break-system-packages
 
-    - name: Pull latest Docker image from Docker Hub
+    - name: Remove old unused images
+      shell: docker image prune -af
+      ignore_errors: yes
+
+    - name: Force pull latest Docker image from Docker Hub
       docker_image:
         name: "{{ docker_user }}/{{ image_name }}"
         tag: "{{ image_tag }}"
         source: pull
+        force_source: true
+        force_tag: true
 
     - name: Stop existing container if running
       docker_container:
         name: "{{ container_name }}"
         state: absent
-        force_kill: yes          # Ensure container is fully removed
+        force_kill: yes
 
-    - name: Run Docker container with latest image
+    - name: Run new container with latest image
       docker_container:
         name: "{{ container_name }}"
         image: "{{ docker_user }}/{{ image_name }}:{{ image_tag }}"
@@ -56,9 +62,8 @@
         ports:
           - "{{ port }}:80"
 
-    - name: Wait for container to be ready
+    - name: Wait for container to start
       wait_for:
         host: 127.0.0.1
         port: "{{ port }}"
         timeout: 15
-
