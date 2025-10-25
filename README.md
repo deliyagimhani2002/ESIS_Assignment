@@ -35,11 +35,15 @@ The pipeline demonstrates how DevOps principles can automate building, testing, 
 3. Jenkinsfile # Jenkins pipeline for CI/CD
 4. deploy.yml # Ansible playbook for deployment
 5. hosts # Ansible inventory with Azure VM details
-6. (Web Files) # index.html, css/, js/
+6. Web Files # index.html, css/, js/
 
 ##  Accessing the App
 Once deployed successfully, open the browser and visit:
 http://57.159.25.36:8081
 We can see the LankaMart homepage running on the Azure VM.
 
-
+##  Key Benefits
+1. Fully automated build → push → deploy process
+2. Reduced manual effort and deployment errors
+3. Scalable cloud-based infrastructure
+4. ISO-aligned DevOps workflow (security, traceability, automation)
