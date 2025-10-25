@@ -56,8 +56,36 @@ We can see the LankaMart homepage running on the Azure VM.
 
 ---
 
-##  Key Benefits
-1. Fully automated build → push → deploy process
-2. Reduced manual effort and deployment errors
-3. Scalable cloud-based infrastructure
-4. ISO-aligned DevOps workflow (security, traceability, automation)
+## Monitoring & Logging
+
+To ensure that the LankaMart application operates reliably after deployment, **monitoring and logging mechanisms** are integrated into the CI/CD pipeline and deployment process. These mechanisms verify container health, track application behavior, and maintain operational transparency in line with **ISO-compliant practices**.
+
+### Container Health Checks
+After deployment, the Docker container running LankaMart is regularly monitored to confirm it is active and serving requests. Any failures or downtime are quickly detected, allowing prompt corrective action.
+
+### Application Health Verification
+The web application’s availability and responsiveness are continuously verified. This provides immediate feedback on deployment success and ensures users can reliably access the service.
+
+### Log Monitoring
+Runtime logs from the containerized application are captured and saved to a designated location on the server. This allows developers and administrators to review activity, identify potential issues, and maintain a historical record of container operations.  
+
+### Integration with CI/CD Pipeline
+Monitoring and logging are seamlessly integrated with Jenkins and Ansible:
+
+- **Jenkins** checks the health of the deployed application and reports container status immediately after each deployment.  
+- **Ansible** automates the collection and storage of container logs on the server for persistent tracking and auditing.
+
+### Benefits
+
+- Ensures the deployed application is operational and accessible  
+- Provides historical logs for troubleshooting and auditing purposes  
+- Supports ISO-compliant operational transparency and reliability  
+- Enables quick detection of failures or performance issues, reducing downtime  
+
+---
+## Key Benefits
+
+- Fully automated build → push → deploy process  
+- Reduced manual effort and deployment errors  
+- Scalable cloud-based infrastructure  
+- ISO-aligned DevOps workflow (security, traceability, automation)
