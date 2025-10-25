@@ -49,7 +49,7 @@ The pipeline demonstrates how DevOps principles can automate building, testing, 
 
 ---
 
-##  Accessing the App
+##  Accessing the Web Application
 Once deployed successfully, open the browser and visit:
 http://57.159.25.36:8081
 We can see the LankaMart homepage running on the Azure VM.
