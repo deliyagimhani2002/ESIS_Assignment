@@ -102,31 +102,32 @@ pipeline {
         // ================= Monitoring & Logging =================
 
         stage('Container Logging & Monitoring') {
-            steps {
-                script {
-                    echo "=== Checking container status and fetching logs on remote VM ==="
-                    sh """
-                        # SSH to Azure VM to check container status and fetch logs
-                        ssh -o StrictHostKeyChecking=no azureuser@${VM_IP} '
-                            # Check if the container is running
-                            if docker ps --format "{{.Names}}" | grep -qw "${CONTAINER_NAME}"; then
-                                echo "Container '${CONTAINER_NAME}' is running ✅"
-                                
-                                # Check if container has logs
-                                if [ \$(docker logs --tail 1 ${CONTAINER_NAME} 2>/dev/null | wc -l) -gt 0 ]; then
-                                    echo "=== Last 20 log lines ==="
-                                    docker logs --tail 20 ${CONTAINER_NAME}  # Display last 20 log lines
-                                else
-                                    echo "No logs available yet for '${CONTAINER_NAME}'"
-                                fi
-                            else
-                                echo "Container '${CONTAINER_NAME}' is NOT running ❌"
-                            fi
-                        '
-                    """
-                }
-            }
+    steps {
+        script {
+            echo "=== Checking container status and fetching logs on remote VM ==="
+            sh """
+                # SSH to Azure VM using correct private key and disable host key checks
+                ssh -i ${PEM_KEY_PATH} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null azureuser@${VM_IP} '
+                    # Check if the container is running
+                    if docker ps --format "{{.Names}}" | grep -qw "${CONTAINER_NAME}"; then
+                        echo "Container '${CONTAINER_NAME}' is running "
+                        
+                        # Fetch last 20 log lines if available
+                        if [ \$(docker logs --tail 1 ${CONTAINER_NAME} 2>/dev/null | wc -l) -gt 0 ]; then
+                            echo "=== Last 20 log lines ==="
+                            docker logs --tail 20 ${CONTAINER_NAME}
+                        else
+                            echo "No logs available yet for '${CONTAINER_NAME}'"
+                        fi
+                    else
+                        echo "Container '${CONTAINER_NAME}' is NOT running "
+                    fi
+                '
+            """
         }
+    }
+}
+
 
         // ================= Health Check =================
         stage('Health Check') {
