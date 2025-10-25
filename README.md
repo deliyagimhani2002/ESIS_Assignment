@@ -37,10 +37,14 @@ The pipeline demonstrates how DevOps principles can automate building, testing, 
 5. hosts # Ansible inventory with Azure VM details
 6. Web Files # index.html, css/, js/
 
+---
+
 ##  Accessing the App
 Once deployed successfully, open the browser and visit:
 http://57.159.25.36:8081
 We can see the LankaMart homepage running on the Azure VM.
+
+---
 
 ##  Key Benefits
 1. Fully automated build → push → deploy process
