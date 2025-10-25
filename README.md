@@ -17,6 +17,16 @@ The pipeline demonstrates how DevOps principles can automate building, testing, 
 
 ---
 
+## Prerequisites
+- Jenkins server with Docker plugin installed
+- Docker installed on Jenkins and Azure VM
+- Ansible installed on Jenkins control machine
+- GitHub repository access
+- Azure VM with SSH access and a user in the Docker group
+- Docker Hub account for storing images
+
+---
+
 ##  Pipeline Workflow
 
 1. **Checkout Code** – Clone the latest source from GitHub.  
