@@ -1,2 +1,13 @@
-[cloud]
+# ==========================================================
+#  Ansible Inventory File - hosts
+# Description: Defines the remote server (Azure VM) where 
+#              LankaMart app will be deployed.
+# Used by: deploy.yml (Ansible Playbook)
+# ==========================================================
+
+[cloud]  # The 'cloud' group represents the target environment.
 57.159.25.36 ansible_user=azureuser ansible_ssh_private_key_file=/var/lib/jenkins/.ssh/ESIS_key.pem
+
+# IP → Azure VM public IP
+# ansible_user → SSH login user
+# ansible_ssh_private_key_file → SSH key path for authentication
