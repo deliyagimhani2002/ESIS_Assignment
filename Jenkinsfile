@@ -146,7 +146,7 @@ pipeline {
         // =================  Clean Up =================
         stage('Clean Up') {
             steps {
-                # Remove unused Docker images to free disk space
+                // Remove unused Docker images to free disk space
                 sh 'docker image prune -f'
             }
         }
