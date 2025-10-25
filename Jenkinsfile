@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME       = "lanka-mart-app"
-        IMAGE_TAG        = "1.0"
+        IMAGE_TAG        = "latest"               // Always use latest tag
         DOCKER_USER      = "deliya123"
         CONTAINER_NAME   = "lanka-mart-app"
         PORT             = "8081"
@@ -28,21 +28,21 @@ pipeline {
 
         stage('Clone Repository') {
             steps {
-                git branch: 'main', url: 'https://github.com/deliyagimhani2002/Lanka_Mart.git'
+                git branch: 'main', url: 'https://github.com/deliyagimhani2002/Lanka_Mart.git', changelog: true, poll: true
             }
         }
 
         stage('Build Docker Image') {
             steps {
                 sh """
-                    echo "Building Docker image..."
+                    echo "Building Docker image with latest code..."
                     docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
                     echo "Image built successfully!"
                 """
             }
         }
 
-        stage('Push to Docker Hub') {
+        stage('Push Docker Image') {
             steps {
                 withCredentials([string(credentialsId: 'deliya123', variable: 'DOCKER_PASS')]) {
                     sh """
@@ -60,7 +60,7 @@ pipeline {
             steps {
                 withEnv(["ANSIBLE_PRIVATE_KEY_FILE=${PEM_KEY_PATH}", "ANSIBLE_HOST_KEY_CHECKING=False"]) {
                     sh """
-                        echo "Running Ansible playbook..."
+                        echo "Running Ansible playbook to deploy updated container..."
                         ansible-playbook -i ${ANSIBLE_HOSTS} deploy.yml
                         echo "Deployment completed!"
                     """
@@ -101,6 +101,5 @@ pipeline {
         }
     }
 }
-
 
 
