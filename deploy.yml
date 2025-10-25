@@ -1,80 +1,108 @@
 # ==========================================================
-# Ansible Playbook: Deploy LankaMart App to Azure VM
-# Description: Automates deployment of Dockerized web app 
-#              to an Azure-hosted Ubuntu server.
-# Tools: Jenkins → Ansible → Docker
+# Ansible Playbook: Deploy LankaMart App & Save Logs
+# Description: Deploys Dockerized LankaMart app on Azure VM
+# and saves container logs to a file for monitoring purposes.
 # ==========================================================
 
-- name: Deploy LankaMart App to Azure VM     # Playbook name (visible in Ansible output)
-  hosts: cloud                               # Target host group defined in 'hosts' inventory file
-  become: yes                                # Run all tasks with elevated privileges (sudo)
+- name: Deploy LankaMart App to Azure VM
+  hosts: cloud               # Target group defined in hosts inventory
+  become: yes                # Run tasks with sudo privileges
 
   vars:
-    docker_user: "deliya123"                 # Docker Hub username
-    image_name: "lanka-mart-app"             # Application image name
-    image_tag: "latest"                      # Image tag version
-    container_name: "lanka-mart-app"         # Name of running container
-    port: "8081"                             # Exposed application port on Azure VM
+    docker_user: "deliya123"                           # Docker Hub username
+    image_name: "lanka-mart-app"                       # Docker image name
+    image_tag: "latest"                                # Docker image tag
+    container_name: "lanka-mart-app"                   # Name for running container
+    port: "8081"                                       # VM port to map container
+    log_file_path: "/home/azureuser/lanka-mart-app_logs.txt"  # Path to save container logs
 
   tasks:
 
     - name: Ensure Docker is installed
       apt:
-        name: docker.io                      # Install Docker from Ubuntu repositories
+        name: docker.io
         state: present
-        update_cache: yes                    # Update package index before installation
+        update_cache: yes
+      # Installs Docker engine if not present and updates package index
 
     - name: Ensure Docker service is running
       systemd:
-        name: docker                         # Ensure Docker daemon is active and enabled
+        name: docker
         state: started
         enabled: yes
+      # Starts Docker daemon and ensures it runs on boot
 
     - name: Add azureuser to docker group
       user:
-        name: azureuser                      # Add default Azure user to Docker group
+        name: azureuser
         groups: docker
-        append: yes                          # Prevent overwriting existing groups
+        append: yes
+      # Adds default Azure user to Docker group to allow running Docker commands without sudo
 
     - name: Install pip3
       apt:
-        name: python3-pip                    # Install Python package manager (needed for modules)
+        name: python3-pip
         state: present
         update_cache: yes
+      # Installs Python package manager required for Ansible Docker modules
 
     - name: Ensure Docker Python module is installed
-      shell: python3 -m pip install docker --break-system-packages  
-      #  Required for Ansible Docker modules to work properly
+      shell: python3 -m pip install docker --break-system-packages
+      # Installs Docker Python library needed by Ansible's Docker modules
 
     - name: Remove old unused images
-      shell: docker image prune -af          # Clean up unused Docker images to free space
-      ignore_errors: yes                     # Ignore errors if no images exist
+      shell: docker image prune -af
+      ignore_errors: yes
+      # Cleans up old Docker images to free disk space; ignores errors if none exist
 
     - name: Force pull latest Docker image from Docker Hub
       docker_image:
-        name: "{{ docker_user }}/{{ image_name }}"  # Full image path
-        tag: "{{ image_tag }}"                      # Version tag 
-        source: pull                                # Always pull from Docker Hub
-        force_source: true                          # Force fresh pull
+        name: "{{ docker_user }}/{{ image_name }}"
+        tag: "{{ image_tag }}"
+        source: pull
+        force_source: true
         force_tag: true
+      # Always pulls the latest image from Docker Hub, ensuring fresh deployment
 
     - name: Stop existing container if running
       docker_container:
-        name: "{{ container_name }}"          # Stop and remove old container instance
+        name: "{{ container_name }}"
         state: absent
-        force_kill: yes                       # Force stop if container is running
+        force_kill: yes
+      # Stops and removes any existing container to avoid conflicts
 
     - name: Run new container with latest image
       docker_container:
-        name: "{{ container_name }}"          # Start new container
-        image: "{{ docker_user }}/{{ image_name }}:{{ image_tag }}"  
+        name: "{{ container_name }}"
+        image: "{{ docker_user }}/{{ image_name }}:{{ image_tag }}"
         state: started
         ports:
-          - "{{ port }}:80"                   # Map container port 80 to VM port 8081
+          - "{{ port }}:80"
+      # Launches new container and maps container port 80 to VM port 8081
 
     - name: Wait for container to start
       wait_for:
-        host: 127.0.0.1                       # Check localhost
-        port: "{{ port }}"                     # Wait until port 8081 is open
-        timeout: 15                           # Wait up to 15 seconds before failing
+        host: 127.0.0.1
+        port: "{{ port }}"
+        timeout: 15
+      # Waits until the container is ready and accessible on specified port
+
+    # ================= Save Logs =================
+    - name: Ensure logs directory exists
+      file:
+        path: "/home/azureuser"
+        state: directory
+        mode: '0755'
+      # Makes sure the directory exists for storing container logs
+
+    - name: Save latest container logs to file
+      shell: docker logs {{ container_name }} > {{ log_file_path }}
+      ignore_errors: yes
+      # Saves the last container logs to a text file for monitoring purposes
+
+    - name: Display log file path
+      debug:
+        msg: "Container logs saved at {{ log_file_path }}"
+      # Outputs the path of saved logs so it is visible in Ansible output
+
 
